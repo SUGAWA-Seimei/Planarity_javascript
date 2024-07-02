@@ -1,2 +1,3 @@
 # Planarity_javascript
-Planarityをjavascriptで作りました。
+往年のflashゲーム「Planarity」をjavascriptで作りました。
+
