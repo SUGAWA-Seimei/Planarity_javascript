@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Planarity</title>
+
+<script>
+let difficult = 8;
+
+let minimum_diff = 5;
+let maximum_diff = 50;
+
+let point_rad = 10;
+let line_wid = 2;
+
+let point = [];
+let path = [];
+
+let selected_point = -1;
+
+let selected_x;
+let selected_y;
+
+let canvas_drag = false;
+let context;
+
+function init(){
+
+	context = board.getContext('2d');
+	board.width = 800;
+	board.height = 800;
+
+	diff.min = minimum_diff;
+	diff.max = maximum_diff;
+
+	board.onmousedown = omm;
+
+	make_game();
+
+}
+
+function omm(event){ 
+
+	xx = event.clientX - board.getBoundingClientRect().left;
+	yy = event.clientY - board.getBoundingClientRect().top;
+	
+	selected_point = -1;
+	//クリックした範囲に点がないか探す
+	for(let i = 0;i<point.length;i++){
+		if((point[i][0]-xx)**2 + (point[i][1] - yy)**2 <= point_rad**2){
+			selected_point = i;
+		}
+	}
+
+	//何かの点でマウスダウンしてたら
+	if(selected_point >= 0){
+		//点のクリックした場所を記録
+		selected_x = point[selected_point][0]-xx;
+		selected_y = point[selected_point][1]-yy;
+
+		//マウス動かしたら点も動かす
+		function onMouseMove(event) {
+			xx = event.clientX - board.getBoundingClientRect().left;
+			yy = event.clientY - board.getBoundingClientRect().top;
+
+			point[selected_point][0] = xx + selected_x;
+			point[selected_point][1] = yy + selected_y;
+
+			draw_board();
+		}
+		//↑をマウスムーブのイベントで行う
+		document.addEventListener('mousemove', onMouseMove);
+
+		//マウスがboardから離れたりマウスアップしたら↑のイベントを消す
+		board.onmouseup = function() {
+			document.removeEventListener('mousemove', onMouseMove);
+		};
+
+		board.onmouseleave = function() {
+			document.removeEventListener('mousemove', onMouseMove);
+		};
+	}
+};
+
+function make_game(){
+	let plg = [];
+	
+	point = [];
+	path = [];
+
+	//点の数を入れるテキストボックスの数字を整えて読み込む。
+	if(isNaN(Number(diff.value))){diff.value=5;}
+	if(Number(diff.value)<5){diff.value=5;}
+	if(Number(diff.value)>100){diff.value=100;}
+	difficult = Math.floor(Number(diff.value));
+
+	//整えた結果をテキストボックスにも反映させておく
+	diff.value = difficult;
+
+	//点、線、ランダムピック用の配列の用意
+	for(let i = 0 ;i < difficult;i++){
+		point.push([]);
+		path.push([]);
+		plg.push(i);
+	}
+
+	//多角形として隣り合った点どうしで線を結ぶ
+	for(let i = 0 ;i < point.length ;i++){
+		path[i].push( (i+1) % path.length);
+		path[i].push( (i+path.length-1) % plg.length);
+	}
+	
+	//再帰的に線を結ぶ。
+	fractal_sprit(plg);
+	fractal_sprit(plg);
+	
+	let i=0;
+	while(plg.length>0){
+
+		rr = Math.floor(Math.random()*plg.length);
+		rr =plg.splice(rr,1)[0];
+		point[i].push(300 * Math.sin(2 * Math.PI * rr / point.length ) + 400);
+		point[i].push(300 * Math.cos(2 * Math.PI * rr / point.length ) + 400);
+		i++;
+	}
+
+	draw_board();
+}
+
+function fractal_sprit(plg){
+	
+	var kouho = [];
+	var kouho2 = [];
+	var start_p;
+	var stop_p;
+	var rr;
+	
+	//分けられる点を探す
+	for(let i = 0;i<plg.length;i++){
+		for(let ii = 0;ii < plg.length;ii++){
+			if(i == ii)continue;
+			let pp = 0;
+			while(pp < path[plg[i]].length){
+				if(path[plg[i]][pp] == plg[ii])break;
+				pp++;
+			}
+			if(pp >= path[plg[i]].length){
+				kouho.push(i);
+				break;
+			}
+		}
+	}
+
+	if(kouho.length==0){return;}//候補ないなら終了
+
+	//候補からランダムで選ぶ
+	rr = Math.floor(Math.random()*kouho.length);
+	start_p = kouho[rr];
+
+	//もう一方となる点を探す
+
+	kouho = [];
+	for(let ii = 0;ii < plg.length;ii++){
+		if(ii==start_p)continue;
+		let pp = 0;
+		while(pp < path[plg[start_p]].length){
+			if(path[plg[start_p]][pp] == plg[ii])break;
+			pp++;
+		}
+		if(pp >= path[plg[start_p]].length){
+			kouho.push(ii);
+		}
+	}
+
+	//候補からランダムで選ぶ
+	rr = Math.floor(Math.random()*kouho.length);
+	stop_p = kouho[rr];
+
+	//パスをつなげる
+	path[plg[start_p]].push(plg[stop_p]);
+	path[plg[stop_p]].push(plg[start_p]);
+	
+
+	//始点より終点の方が小さいなら値を交換する
+	if(start_p > stop_p){tmp = start_p ;start_p = stop_p ;stop_p = tmp;}
+
+	//分けた線の両側で多角形を分ける
+	kouho = [];
+	kouho2 = [];
+
+	for(let i = 0;i < plg.length;i++){
+		if(i == start_p || i == stop_p){
+			kouho.push(plg[i]);
+			kouho2.push(plg[i]);
+		}else if(start_p < i && i < stop_p){
+			kouho2.push(plg[i]);
+		}else{
+			kouho.push(plg[i]);
+		}
+	}
+
+	//分けた多角形で再帰的に実行する
+	fractal_sprit(kouho2);
+	fractal_sprit(kouho);
+	
+}
+
+function is_solved(){
+
+	//どっかで交差してたらその２線を赤く表示する
+	for(var s1= 0 ;s1 < path.length;s1++){
+	for(var p1 = 0;p1 < path[s1].length;p1++){
+		for(var s2= s1 ;s2 < path.length;s2++){
+		for(var p2 = 0;p2 < path[s2].length;p2++){
+			if(is_kousa(point[s1][0],point[s1][1],point[path[s1][p1]][0],point[path[s1][p1]][1],point[s2][0],point[s2][1],point[path[s2][p2]][0],point[path[s2][p2]][1])){
+						
+				context.strokeStyle = "rgb(255,0,0)";
+				context.lineWidth = line_wid;
+				context.beginPath();
+				context.moveTo( point[s1][0],point[s1][1]);
+				context.lineTo( point[path[s1][p1]][0],point[path[s1][p1]][1] );
+				context.stroke();
+
+				context.beginPath();
+				context.moveTo( point[s2][0],point[s2][1]);
+				context.lineTo( point[path[s2][p2]][0],point[path[s2][p2]][1] );
+				context.stroke();
+				return false;
+			}
+                }
+		}
+	}
+	}
+
+	//ドコモ交差してなかったらお祝いメッセージを表示してレベルをひとつあげる	
+
+	context.fillStyle = "rgb(0,250,0)";
+	context.font = "50px serif";
+	context.fillText("SOLVED!",5,100);
+	diff.value = difficult +1;
+	return true;
+}
+
+//線分の直行判定。
+function is_kousa(ax, ay, bx, by, cx, cy, dx, dy) {
+	var ta = (cx - dx) * (ay - cy) + (cy - dy) * (cx - ax);
+	var tb = (cx - dx) * (by - cy) + (cy - dy) * (cx - bx);
+	var tc = (ax - bx) * (cy - ay) + (ay - by) * (ax - cx);
+	var td = (ax - bx) * (dy - ay) + (ay - by) * (ax - dx);
+
+	return tc * td < 0 && ta * tb < 0;
+	// return tc * td <= 0 && ta * tb <= 0; // 端点を含む場合
+};
+
+function draw_board(){
+
+	//背景をきれいに
+	context.fillStyle = "hsl(50,100%,100%)";
+	context.fillRect(0, 0, board.width, board.height);
+
+	//線を引く。小さい番号から大きい番号の時だけ線を引けばいい。
+	for(let i = 0;i<path.length;i++){
+		context.strokeStyle = "rgb(0,0,0)";
+		context.lineWidth = line_wid;
+		context.beginPath();
+
+		for(let ii=0;ii<path[i].length;ii++){
+			if(path[i][ii]<i)continue;
+
+			context.moveTo( point[i][0] , point[i][1]);
+			context.lineTo( point[path[i][ii]][0], point[path[i][ii]][1] );
+			context.stroke();
+		}
+	}
+
+	//点の描画
+	for(let i = 0;i<point.length;i++){
+		context.fillStyle = "rgb(0,0,250)";
+		context.beginPath();
+
+		context.arc(point[i][0],point[i][1], point_rad, 0, 2 * Math.PI);
+		context.fill();
+	}
+}
+
+</script>
+
+</head>
+
+<body onLoad="init();">
+<canvas id="board" style="outline:solid;"></canvas>
+<button onClick="is_solved();">判定</button><br>
+<input id="diff" type="number" step="1" value=8>
+<button onClick="make_game();">次へ</button>
+
+</body>
+</html>
