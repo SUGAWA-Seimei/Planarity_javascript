@@ -386,7 +386,9 @@ function surface_tension(){
 <button onClick="make_game();">次へ</button>　
 
 <button onClick="if(!tik){tik=setInterval('surface_tension();',20);}">表面張力</button>
-<button onClick="clearInterval(tik);tik=0;">止める</button>
+<button onClick="clearInterval(tik);tik=0;">止める</button><br>
+<button onClick="point_rad=10;draw_board();">点を小さく</button>
+<button onClick="point_rad=30;draw_board();">点を大きく</button>
 
 </body>
 </html>
