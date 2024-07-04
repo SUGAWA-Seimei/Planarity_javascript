@@ -49,7 +49,8 @@ function init(){
 }
 
 
-function  swipeStart(event){ 
+function  swipeStart(event){
+	event.preventDefault();
 
 	xx = event.touches[0].pageX; - board.getBoundingClientRect().left;
 	yy = event.touches[0].pageY - board.getBoundingClientRect().top;
@@ -70,6 +71,7 @@ function  swipeStart(event){
 
 		//スワイプ動かしたら点も動かす
 		function swipe(event) {
+			event.preventDefault();
 			xx = event.touches[0].pageX; - board.getBoundingClientRect().left;
 			yy = event.touches[0].pageY - board.getBoundingClientRect().top;
 
